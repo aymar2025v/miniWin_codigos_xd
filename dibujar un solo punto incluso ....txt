@@ -1,0 +1,35 @@
+//dibujar un solo punto incluso cuando se tiene el clic precionado
+
+#include "miniwin.h"
+using namespace miniwin;
+
+int main() {
+
+    // dimenciones
+    int a = 300;
+    int b = 500;
+
+    vredimensiona(a,b);
+
+    int x, y;
+    bool presionado = false;
+
+    while(true){
+        x = raton_x();
+        y = raton_y();
+
+        if(raton_boton_izq() && !presionado){
+            punto(x, y);
+            color(AMARILLO);
+            presionado = true;   // ya se dibujó
+        }
+
+        if(!raton_boton_izq()){
+            presionado = false; // listo para el siguiente clic
+        }
+        refresca();
+        //espera(50);
+    }
+
+    return 0;
+}
