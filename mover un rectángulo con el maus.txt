@@ -1,0 +1,47 @@
+// mover un rectángulo con el maus 
+
+#include "miniwin.h"
+using namespace miniwin;
+
+int main(){
+    int x = 100, y = 100;
+    int ancho = 120, alto = 80;
+
+    bool arrastrando = false;
+    int dx = 0, dy = 0;
+
+    vredimensiona(500, 400);
+
+    while (true){
+        borra();
+
+        int mx = raton_x();
+        int my = raton_y();
+
+        // Si presiono click dentro del rectángulo
+        if (raton_boton_izq()){
+            if (!arrastrando &&
+                mx >= x && mx <= x + ancho &&
+                my >= y && my <= y + alto){
+
+                arrastrando = true;
+                dx = mx - x;
+                dy = my - y;
+            }
+        } else {
+            arrastrando = false;
+        }
+
+        // Mover mientras arrastro
+        if (arrastrando){
+            x = mx - dx;
+            y = my - dy;
+        }
+
+        color(ROJO);
+        rectangulo_lleno(x, y, x + ancho, y + alto);
+
+        refresca();
+        espera(10);
+    }
+}
