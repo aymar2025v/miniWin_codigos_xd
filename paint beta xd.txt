@@ -1,0 +1,53 @@
+
+// paint beta xd
+
+#include "miniwin.h"
+using namespace miniwin;
+
+int main() {
+
+    // dimenciones
+    int a = 300;
+    int b = 500;
+
+    vredimensiona(a,b);
+
+    int x, y;
+    int ox = -1;
+    int oy = -1;
+
+    int col = BLANCO;
+
+    while(true){
+        x = raton_x();
+        y = raton_y();
+
+        color(col);
+
+        if(raton_boton_izq()){
+            if(ox != -1){
+                //color(col);
+                linea(ox, oy, x, y);
+                linea(ox, oy + 1, x, y + 1);
+            }
+            ox = x;
+            oy = y;
+        }
+        else{
+            ox = -1;
+            oy = -1;
+        }
+
+        int t = tecla();
+
+        if(t == 'A') col = VERDE;
+        else if(t == 'B') col = ROJO;
+        else if(t == 'C') col = AMARILLO;
+        else if(t == 'X') col = NEGRO;
+
+        refresca();
+        espera(10);
+    }
+
+    return 0;
+}
