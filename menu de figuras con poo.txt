@@ -1,0 +1,252 @@
+//menu de figuras con poo
+
+//#include <iostream>
+#include <vector>
+#include <string>
+#include "miniwin.h"
+using namespace miniwin;
+//using namespace std;
+
+class Punto{
+public:
+    int x;
+    int y;
+    Punto(){
+        x = 0;
+        y = 0;
+    }
+    Punto(int _x,int _y){
+        x = _x;
+        y = _y;
+    }
+    void definir(int _x,int _y){
+        x = _x;
+        y = _y;
+    }
+};
+
+class Figura{
+protected:
+    float x;
+    float y;
+    float ancho;
+    float alto;
+    bool antes;
+public:
+    Figura(){
+        definir(0,0,0,0);
+    }
+    Figura(float _x,float _y,float _an,float _al){
+        definir(_x,_y,_an,_al);
+    }
+    void definir(float _x,float _y,float _an,float _al){
+        x = _x;
+        y = _y;
+        ancho = _an;
+        alto = _al;
+    }
+    void ratondown(int _x,int _y){
+        x = _x;
+        y = _y;
+    }
+    void ratonup(int _x,int _y){
+        ancho = _x-x;
+        alto = _y-y;
+    }
+    void procesar(int _x, int _y, bool ahora) {
+        if (!antes && ahora)
+            ratondown(_x, _y);
+
+        if (antes && !ahora)
+            ratonup(_x, _y);
+
+        antes = ahora;
+    }
+    virtual void dibujar() = 0;
+};
+
+class Rectangulo: public Figura{
+public:
+    Rectangulo(float _x,float _y,float _an,float _al): Figura(_x,_y,_an,_al){
+
+    }
+    Rectangulo():Figura(){
+
+    }
+    void dibujar() override {
+        if(ancho<=0)return;
+        rectangulo(x,y,x+ancho,y+alto);
+    }
+};
+
+class Circulo: public Figura{
+public:
+    Circulo(float _x,float _y,float _an,float _al): Figura(_x,_y,_an,_al){
+
+    }
+    Circulo():Figura(){
+
+    }
+    void dibujar() override{
+        if(ancho<=0)return;
+        int r;
+        r = ancho<alto?ancho/2:alto/2;
+        circulo(x+ancho/2,y+alto/2,r);
+    }
+};
+
+class Triangulo: public Figura{
+public:
+    Triangulo(float _x,float _y,float _an,float _al): Figura(_x,_y,_an,_al){
+
+    }
+    Triangulo():Figura(){
+
+    }
+    void dibujar() override{
+        if(ancho<=0)return;
+        linea(x,y+alto,x+ancho/2,y);
+        linea(x+ancho/2,y,x+ancho,y+alto);
+        linea(x,y+alto,x+ancho,y+alto);
+    }
+};
+
+class Flecha: public Figura{
+public:
+    Flecha(float _x,float _y,float _an,float _al): Figura(_x,_y,_an,_al){
+
+    }
+    void dibujar() override{
+        if(ancho<=0)return;
+        linea(x,y+2*alto/3,x,y+alto/3);
+        linea(x,y+1.0/3*alto,x+ancho/2,y+alto/3);
+        linea(x+ancho/2,y+alto/3,x+ancho/2,y);
+
+        linea(x+ancho/2,y,x+ancho,y+alto/2);
+        linea(x+ancho,y+alto/2,x+ancho/2,y+alto);
+        linea(x+ancho/2,y+alto,x+ancho/2,y+2.0/3*alto);
+        linea(x+ancho/2,y+2.0/3*alto,x,y+2.0/3*alto);
+    }
+};
+
+class Boton{
+private:
+    int x;
+    int y;
+    int w;
+    int h;
+    std::string text;
+public:
+    Boton(){
+        definir(0,0,100,100,"");
+    }
+    Boton(int _x,int _y,int _w,int _h,std::string _t){
+        definir(_x,_y,_w,_h,_t);
+    }
+    void definir(int _x,int _y,int _w,int _h,std::string _t){
+        x = _x;
+        y = _y;
+        w = _w;
+        h = _h;
+        text = _t;
+    }
+    bool click(int mx,int my){
+        return mx>=x && mx<=x+w && my>=y && my<=y+h;
+    }
+    void dibujar(){
+        rectangulo(x,y,x+w,y+h);
+        texto(x+10,y+h/2.0-5,text);
+    }
+};
+
+class Menu{
+private:
+    int x;
+    int y;
+    std::vector<Boton> bts;
+public:
+    Menu(int _x,int _y,std::vector<std::string>& lista){
+        x = _x;
+        y = _y;
+        for(int i=0;i<lista.size();i++){
+            bts.emplace_back(x,y+30*i,100,30,lista[i]);
+        }
+    }
+
+    void dibujar(){
+        for(int i=0;i<bts.size();i++){
+            bts[i].dibujar();
+        }
+    }
+    int procesar(int _x,int _y,int click){
+        if(!click)return 0;
+        for(int i=0;i<bts.size();i++){
+            if(bts[i].click(_x,_y))
+                return i+1;
+        }
+        return 0;
+    }
+
+};
+
+int main(){
+    vredimensiona(400,400);
+
+    Punto pm;
+
+    std::vector<std::string> opciones;
+    opciones.push_back("Triangulo");
+    opciones.push_back("Rectangulo");
+    opciones.push_back("Circulo");
+
+    Menu menu(10,10,opciones);
+    menu.dibujar();
+
+    std::vector<Figura*> figuras;
+    int click;
+
+    while(true){
+        pm.x = raton_x();
+        pm.y = raton_y();
+
+        click = raton_boton_izq();
+
+        int op = menu.procesar(pm.x,pm.y,click);
+
+
+        switch(op){
+            case 1:{
+                Figura* nueva = new Triangulo();
+                figuras.push_back(nueva);
+                op = 0;
+                break;
+            }
+            case 2:{
+                Figura* nueva = new Rectangulo();
+                figuras.push_back(nueva);
+                op = 0;
+                break;
+            }
+            case 3:{
+                Figura* nueva = new Circulo();
+                figuras.push_back(nueva);
+                op = 0;
+                break;
+            }
+        }
+
+        if(click){
+            if (!figuras.empty()){
+                figuras.back()->procesar(pm.x,pm.y,click);
+            }
+        }else{
+            if (!figuras.empty()){
+                figuras.back()->procesar(pm.x,pm.y,click);
+                figuras.back()->dibujar();
+            }
+        }
+        refresca();
+        espera(10);
+    }
+    return 0;
+}
