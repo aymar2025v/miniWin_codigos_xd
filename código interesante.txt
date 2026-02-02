@@ -1,0 +1,36 @@
+//código interesante
+
+
+#include "miniwin.h"
+#include <iostream>
+#include <string>
+using namespace miniwin;
+using namespace std;
+
+int main(){
+    vredimensiona(400, 300);
+
+    while(true){
+        borra();
+        texto(10, 10, "Mueve el mouse");
+
+        int x = raton_x();
+        int y = raton_y();
+
+        int xo, yo;
+
+        texto(10, 30, "X: " + to_string(x));
+        texto(10, 50, "Y: " + to_string(y));
+
+        if(raton_boton_izq()){
+            xo = x;
+            yo = y;
+            color(BLANCO);
+        }
+        linea(xo, yo, x, y);
+
+        refresca();
+        espera(10);
+    }
+    return 0;
+}
