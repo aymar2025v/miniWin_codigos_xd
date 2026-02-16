@@ -1,0 +1,116 @@
+// win ver 1
+
+#include <iostream>
+#include <string>
+#include "miniwin.h"
+
+using namespace miniwin;
+using namespace std;
+
+class Punto {
+private:
+    int x, y;
+public:
+    Punto() : x(0), y(0) {}
+    Punto(int _x, int _y) : x(_x), y(_y) {} 
+    int getX() const { return x; }
+    int getY() const { return y; }
+};
+
+class Boton {
+private:
+    Punto ini;
+    Punto fn;
+    string text;
+public:
+    Boton(Punto _ini, Punto _fn, string _text) : ini(_ini), fn(_fn), text(_text) {}
+
+    void dibujar(bool cursorDentro = false) const {
+        if (cursorDentro) {
+            color(AMARILLO); // AMARILLO en lugar de VERDE para resaltar
+        } else {
+            color(BLANCO);
+        }
+        rectangulo(ini.getX(), ini.getY(), fn.getX(), fn.getY());
+
+        // Dibujar texto en NEGRO para que contraste con el fondo
+        color(NEGRO);
+        int centroX = (ini.getX() + fn.getX()) / 2;
+        int centroY = (ini.getY() + fn.getY()) / 2;
+        int anchoTextoAprox = text.length() * 8;
+        texto(centroX - anchoTextoAprox / 2, centroY - 5, text);
+    }
+
+    bool estaDentro(int x, int y) const {
+        return (x >= ini.getX() && x <= fn.getX() &&
+                y >= ini.getY() && y <= fn.getY());
+    }
+};
+
+int main() {
+    vredimensiona(600, 400);
+
+    Punto p1(10, 10);
+    Punto p2(200, 60);
+
+    Boton b1(p1, p2, "Haz Clic");
+
+    bool ejecutando = true;
+
+    while (ejecutando) {
+        borra();
+
+        int x = raton_x();
+        int y = raton_y();
+        bool dentro = b1.estaDentro(x, y);
+
+        // 1. Dibujar el botón (con o sin resalte)
+        b1.dibujar(dentro);
+
+        // 2. Mostrar información (usando solo colores disponibles)
+        if (dentro) {
+            color(AMARILLO);
+            texto(250, 100, "Cursor DENTRO del boton");
+
+            // Detectar clic
+            if (raton_boton_izq()) {
+                // Borrar área del mensaje anterior pintando un rectángulo negro
+                color(NEGRO);
+                rectangulo_lleno(250, 120, 450, 140);
+                color(ROJO); // ROJO para indicar clic
+                texto(250, 120, "¡Boton presionado!");
+            } else {
+                color(NEGRO);
+                rectangulo_lleno(250, 120, 450, 140);
+                color(AZUL); // AZUL para indicar liberado
+                texto(250, 120, "Boton liberado");
+            }
+        } else {
+            color(CYAN); // CYAN para estado "fuera"
+            texto(250, 100, "Cursor FUERA del boton");
+            // Limpiar mensaje de clic cuando el cursor está fuera
+            color(NEGRO);
+            rectangulo_lleno(250, 120, 450, 140);
+        }
+
+        // 3. Mostrar coordenadas (en MAGENTA)
+        color(MAGENTA);
+        string coord = "Raton: X=" + to_string(x) + " Y=" + to_string(y);
+        texto(400, 350, coord);
+
+        // 4. Instrucción para salir (en BLANCO)
+        color(BLANCO);
+        texto(400, 370, "ESC para salir");
+
+        refresca();
+
+        // 5. Salir con ESC
+        if (tecla() == ESCAPE) {
+            ejecutando = false;
+        }
+
+        espera(10);
+    }
+
+    return 0;
+}
