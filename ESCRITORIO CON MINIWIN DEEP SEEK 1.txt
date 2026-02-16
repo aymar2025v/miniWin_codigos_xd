@@ -1,0 +1,331 @@
+// ESCRITORIO CON MINIWIN DEEP SEEK 1
+
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm> 
+#include "miniwin.h"
+
+using namespace miniwin;
+using namespace std;
+
+class Punto {
+private:
+    int x, y;
+public:
+    Punto() : x(0), y(0) {}
+    Punto(int _x, int _y) : x(_x), y(_y) {}
+    int getX() const { return x; }
+    int getY() const { return y; }
+    void setX(int _x) { x = _x; }
+    void setY(int _y) { y = _y; }
+};
+
+class Icono {
+private:
+    Punto posicion;
+    string nombre;
+    string tipo; // "carpeta", "archivo", "papelera", etc.
+    bool seleccionado;
+
+public:
+    Icono(Punto _pos, string _nombre, string _tipo = "archivo")
+        : posicion(_pos), nombre(_nombre), tipo(_tipo), seleccionado(false) {}
+
+    void dibujar() const {
+        // Dibujar rectángulo del icono
+        if (seleccionado) {
+            color(AMARILLO);
+            rectangulo(posicion.getX(), posicion.getY(),
+                      posicion.getX() + 80, posicion.getY() + 70);
+        } else {
+            color(BLANCO);
+            rectangulo(posicion.getX(), posicion.getY(),
+                      posicion.getX() + 80, posicion.getY() + 70);
+        }
+
+        // Dibujar "icono" según el tipo
+        color(AZUL);
+        if (tipo == "carpeta") {
+            rectangulo_lleno(posicion.getX() + 20, posicion.getY() + 10,
+                           posicion.getX() + 60, posicion.getY() + 40);
+            color(AMARILLO);
+            texto(posicion.getX() + 30, posicion.getY() + 20, "📁");
+        } else if (tipo == "papelera") {
+            rectangulo_lleno(posicion.getX() + 20, posicion.getY() + 10,
+                           posicion.getX() + 60, posicion.getY() + 40);
+            color(ROJO);
+            texto(posicion.getX() + 30, posicion.getY() + 20, "🗑️");
+        } else {
+            // Archivo por defecto
+            rectangulo_lleno(posicion.getX() + 20, posicion.getY() + 10,
+                           posicion.getX() + 60, posicion.getY() + 40);
+            color(CYAN);
+            texto(posicion.getX() + 30, posicion.getY() + 20, "📄");
+        }
+
+        // Nombre del icono
+        color(BLANCO);
+        texto(posicion.getX() + 10, posicion.getY() + 50, nombre);
+    }
+
+    bool estaDentro(int x, int y) const {
+        return (x >= posicion.getX() && x <= posicion.getX() + 80 &&
+                y >= posicion.getY() && y <= posicion.getY() + 70);
+    }
+
+    void setSeleccionado(bool sel) { seleccionado = sel; }
+    string getNombre() const { return nombre; }
+    string getTipo() const { return tipo; }
+};
+
+class Ventana {
+private:
+    Punto posicion;
+    int ancho, alto;
+    string titulo;
+    bool activa;
+    bool moviendo;
+    int offsetX, offsetY;
+
+public:
+    Ventana(Punto _pos, int _ancho, int _alto, string _titulo)
+        : posicion(_pos), ancho(_ancho), alto(_alto), titulo(_titulo),
+          activa(true), moviendo(false), offsetX(0), offsetY(0) {}
+
+    void dibujar() const {
+        if (!activa) return;
+
+        // Barra de título
+        color(AZUL);
+        rectangulo_lleno(posicion.getX(), posicion.getY(),
+                        posicion.getX() + ancho, posicion.getY() + 25);
+
+        color(BLANCO);
+        texto(posicion.getX() + 10, posicion.getY() + 5, titulo);
+
+        // Borde y área de contenido
+        color(BLANCO);
+        rectangulo(posicion.getX(), posicion.getY(),
+                  posicion.getX() + ancho, posicion.getY() + alto);
+
+        // Botón de cerrar (X)
+        color(ROJO);
+        texto(posicion.getX() + ancho - 20, posicion.getY() + 5, "X");
+    }
+
+    bool clickEnBarra(int x, int y) const {
+        return (activa && x >= posicion.getX() && x <= posicion.getX() + ancho - 30 &&
+                y >= posicion.getY() && y <= posicion.getY() + 25);
+    }
+
+    bool clickEnCerrar(int x, int y) const {
+        return (activa && x >= posicion.getX() + ancho - 20 && x <= posicion.getX() + ancho &&
+                y >= posicion.getY() && y <= posicion.getY() + 25);
+    }
+
+    void mover(int x, int y) {
+        if (moviendo) {
+            posicion.setX(x - offsetX);
+            posicion.setY(y - offsetY);
+        }
+    }
+
+    void iniciarMover(int x, int y) {
+        moviendo = true;
+        offsetX = x - posicion.getX();
+        offsetY = y - posicion.getY();
+    }
+
+    void detenerMover() { moviendo = false; }
+    void cerrar() { activa = false; }
+    bool isActiva() const { return activa; }
+    bool isMoviendo() const { return moviendo; }
+};
+
+class Escritorio {
+private:
+    vector<Icono> iconos;
+    vector<Ventana> ventanas;
+    int ancho, alto;
+    Icono* iconoSeleccionado;
+    Ventana* ventanaActiva;
+
+public:
+    Escritorio(int _ancho, int _alto) : ancho(_ancho), alto(_alto),
+                                        iconoSeleccionado(nullptr),
+                                        ventanaActiva(nullptr) {
+        inicializarIconos();
+    }
+
+    void inicializarIconos() {
+        iconos.push_back(Icono(Punto(20, 50), "Documentos", "carpeta"));
+        iconos.push_back(Icono(Punto(120, 50), "Imagenes", "carpeta"));
+        iconos.push_back(Icono(Punto(220, 50), "informe.txt", "archivo"));
+        iconos.push_back(Icono(Punto(320, 50), "foto.jpg", "archivo"));
+        iconos.push_back(Icono(Punto(420, 50), "Papelera", "papelera"));
+
+        iconos.push_back(Icono(Punto(20, 150), "Proyecto", "carpeta"));
+        iconos.push_back(Icono(Punto(120, 150), "musica.mp3", "archivo"));
+        iconos.push_back(Icono(Punto(220, 150), "video.mp4", "archivo"));
+        iconos.push_back(Icono(Punto(320, 150), "backup", "carpeta"));
+    }
+
+    void dibujar() {
+        // Fondo del escritorio
+        color(NEGRO);
+        rectangulo_lleno(0, 0, ancho, alto);
+
+        // Barra de tareas (parte inferior)
+        color(AZUL);
+        rectangulo_lleno(0, alto - 40, ancho, alto);
+
+        color(BLANCO);
+        texto(20, alto - 25, "Inicio");
+        texto(ancho - 100, alto - 25, "Reloj 12:00");
+
+        // Dibujar iconos
+        for (const auto& icono : iconos) {
+            icono.dibujar();
+        }
+
+        // Dibujar ventanas activas
+        for (const auto& ventana : ventanas) {
+            ventana.dibujar();
+        }
+    }
+
+    void manejarClick(int x, int y) {
+        // Primero verificar clicks en ventanas (de arriba a abajo)
+        for (auto& ventana : ventanas) {
+            if (ventana.isActiva()) {
+                if (ventana.clickEnCerrar(x, y)) {
+                    ventana.cerrar();
+                    return;
+                }
+                if (ventana.clickEnBarra(x, y)) {
+                    ventana.iniciarMover(x, y);
+                    ventanaActiva = &ventana;
+                    return;
+                }
+            }
+        }
+
+        // Luego verificar clicks en iconos
+        for (auto& icono : iconos) {
+            if (icono.estaDentro(x, y)) {
+                // Deseleccionar icono anterior
+                if (iconoSeleccionado) {
+                    iconoSeleccionado->setSeleccionado(false);
+                }
+                // Seleccionar nuevo icono
+                icono.setSeleccionado(true);
+                iconoSeleccionado = &icono;
+
+                // Doble click para abrir (simulado)
+                // En un programa real necesitarías contar tiempo entre clicks
+                abrirIcono(icono);
+                return;
+            }
+        }
+
+        // Si no hay click en nada, deseleccionar
+        if (iconoSeleccionado) {
+            iconoSeleccionado->setSeleccionado(false);
+            iconoSeleccionado = nullptr;
+        }
+    }
+
+    void manejarMovimiento(int x, int y) {
+        for (auto& ventana : ventanas) {
+            if (ventana.isMoviendo()) {
+                ventana.mover(x, y);
+            }
+        }
+    }
+
+    void soltarClick() {
+        for (auto& ventana : ventanas) {
+            if (ventana.isMoviendo()) {
+                ventana.detenerMover();
+            }
+        }
+        ventanaActiva = nullptr;
+    }
+
+    void abrirIcono(const Icono& icono) {
+        // Crear una ventana según el tipo de icono
+        if (icono.getTipo() == "carpeta") {
+            ventanas.push_back(Ventana(Punto(200, 150), 250, 200,
+                                      "Carpeta: " + icono.getNombre()));
+        } else if (icono.getTipo() == "papelera") {
+            ventanas.push_back(Ventana(Punto(250, 180), 200, 150, "Papelera"));
+        } else {
+            ventanas.push_back(Ventana(Punto(220, 160), 230, 180,
+                                      "Archivo: " + icono.getNombre()));
+        }
+    }
+
+    void limpiarVentanasCerradas() {
+    // Eliminar ventanas inactivas
+    ventanas.erase(
+        remove_if(ventanas.begin(), ventanas.end(),
+                 [](const Ventana& v) { return !v.isActiva(); }),
+        ventanas.end()
+    );
+}
+};
+
+int main() {
+    const int ANCHO = 800;
+    const int ALTO = 600;
+
+    vredimensiona(ANCHO, ALTO);
+
+    Escritorio escritorio(ANCHO, ALTO);
+
+    bool ejecutando = true;
+    bool clickPresionado = false;
+
+    while (ejecutando) {
+        int x = raton_x();
+        int y = raton_y();
+
+        escritorio.dibujar();
+
+        // Instrucciones
+        color(BLANCO);
+        texto(10, ALTO - 60, "Click en iconos para abrir | ESC para salir");
+
+        refresca();
+
+        // Manejar eventos del ratón
+        if (raton_boton_izq()) {
+            if (!clickPresionado) {
+                // Click recién presionado
+                escritorio.manejarClick(x, y);
+                clickPresionado = true;
+            } else {
+                // Ratón moviéndose con click presionado
+                escritorio.manejarMovimiento(x, y);
+            }
+        } else {
+            if (clickPresionado) {
+                // Click liberado
+                escritorio.soltarClick();
+                clickPresionado = false;
+            }
+        }
+
+        escritorio.limpiarVentanasCerradas();
+
+        if (tecla() == ESCAPE) {
+            ejecutando = false;
+        }
+
+        espera(20);
+    }
+
+    return 0;
+}
